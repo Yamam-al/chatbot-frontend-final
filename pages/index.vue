@@ -11,6 +11,7 @@ type Msg = { role: 'user'|'assistant'|'system', content: string }
 const messages = ref<Msg[]>([])
 const input = ref('')
 const isTyping = ref(false)
+const isThinking = ref(false)
 const { streamChat, abort } = useStreamChat()
 
 const listRef = ref<HTMLElement | null>(null)
@@ -31,6 +32,8 @@ const send = async () => {
   // Platzhalter anhängen und Index sicher bekommen
   const idx = messages.value.push({ role: 'assistant', content: '' }) - 1
 
+  isThinking.value = true
+
   await streamChat(
   { messages: messages.value, endpoint: '/stream' },
   {
@@ -42,6 +45,7 @@ const send = async () => {
 )
 }
 const handleChunk = (idx: number, t: string) => {
+  if (isThinking.value) isThinking.value = false // erster Token angekommen
   const m = messages.value[idx]
   if (!m) return
   messages.value[idx] = { ...m, content: (m.content ?? '') + t } // immutable!
@@ -79,6 +83,8 @@ onMounted(scrollToBottom)
           </NCard>
         </div>
 
+        <!-- Nachdenken-Indicator -->
+        <div v-if="isThinking" class="text-xs opacity-60 px-1">Bot denkt nach …</div>
         <!-- Tippen-Indicator -->
         <div v-if="isTyping" class="text-xs opacity-60 px-1">Bot tippt …</div>
       </div>
